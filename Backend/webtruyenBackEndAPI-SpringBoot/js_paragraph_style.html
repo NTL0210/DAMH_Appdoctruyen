@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>JS DOM paragraph style</title>
+</head>
+<body>
+  <p id='text'>JavaScript</p>
+  <div>
+    <button id='jsstyle' onclick="js_style()">Style</button>
+  </div>
+
+  <script>
+    function js_style() {
+      var p = document.getElementById('text');
+      p.style.color = 'red';
+      p.style.fontSize = '20px';
+      p.style.fontWeight = 'bold';
+    }
+  </script>
+</body>
+</html>
