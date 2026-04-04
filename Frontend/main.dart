@@ -91,6 +91,7 @@ class _StoryVerseAppState extends State<StoryVerseApp> {
     }
   }
 
+// Xây dựng widget gốc với ThemeProvider và LanguageProvider
   @override
   Widget build(BuildContext context) {
     return ThemeProvider(
@@ -201,7 +202,7 @@ class _SplashScreenState extends State<SplashScreen>
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   late Animation<double> _scaleAnimation;
-
+// Khởi tạo hiệu ứng
   @override
   void initState() {
     super.initState();
@@ -260,6 +261,7 @@ class _SplashScreenState extends State<SplashScreen>
     super.dispose();
   }
 
+// Xây dựng giao diện Splash với hiệu ứng fade và scale
   @override
   Widget build(BuildContext context) {
     return Scaffold(
