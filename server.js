@@ -48,8 +48,14 @@ const startServer = async () => {
     // Validate environment
     validateEnv();
 
-    // Connect to database
-    await connectDatabase();
+    // Connect to database - continue even if fails (development mode)
+    try {
+      await connectDatabase();
+    } catch (dbError) {
+      logger.warn('Database connection failed, starting server in limited mode', {
+        error: dbError.message
+      });
+    }
 
     // Create Express app
     const app = createApp();
