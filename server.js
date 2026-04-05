@@ -2,7 +2,7 @@ require('dotenv').config();
 const http = require('http');
 const { Server } = require('socket.io');
 const createApp = require('./src/app');
-const { connectDatabase } = require('./src/config/database');
+const { connectDatabase, disconnectDatabase } = require('./src/config/database');
 const logger = require('./src/utils/logger');
 const initializeNotificationHub = require('./src/sockets/notificationHub');
 const notificationService = require('./src/services/notificationService');
@@ -48,13 +48,21 @@ const startServer = async () => {
     // Validate environment
     validateEnv();
 
-    // Connect to database - continue even if fails (development mode)
+    const allowStartWithoutDb = process.env.ALLOW_START_WITHOUT_DB === 'true';
+
+    // Connect to database. In production, fail fast unless explicitly overridden.
     try {
       await connectDatabase();
     } catch (dbError) {
-      logger.warn('Database connection failed, starting server in limited mode', {
+      logger.error('Database connection failed during startup', {
         error: dbError.message
       });
+
+      if (!allowStartWithoutDb) {
+        throw dbError;
+      }
+
+      logger.warn('Starting server in limited mode because ALLOW_START_WITHOUT_DB=true');
     }
 
     // Create Express app
@@ -81,13 +89,17 @@ const startServer = async () => {
     // Start server
     const PORT = process.env.PORT || 3000;
     server.listen(PORT, () => {
+      // Determine base URL - use API_URL from env if available (for cloud), otherwise localhost
+      const baseUrl = process.env.API_URL || `http://localhost:${PORT}`;
+      
       logger.info(`Server started successfully`, {
         port: PORT,
         environment: process.env.NODE_ENV || 'development',
-        nodeVersion: process.version
+        nodeVersion: process.version,
+        baseUrl: baseUrl
       });
-      logger.info(`API Documentation available at http://localhost:${PORT}/api-docs`);
-      logger.info(`Health check available at http://localhost:${PORT}/health`);
+      logger.info(`API Documentation available at ${baseUrl}/api-docs`);
+      logger.info(`Health check available at ${baseUrl}/health`);
     });
 
     // Graceful shutdown
@@ -103,8 +115,7 @@ const startServer = async () => {
         });
 
         // Close database connection
-        const mongoose = require('mongoose');
-        await mongoose.connection.close();
+        await disconnectDatabase();
         logger.info('Database connection closed');
 
         process.exit(0);

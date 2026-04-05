@@ -11,7 +11,9 @@ const authService = require('../services/authService');
  */
 exports.register = async (req, res, next) => {
   try {
-    const { email, username, password } = req.body;
+    const email = req.body.email || req.body.mail;
+    const username = req.body.username || req.body.userName;
+    const { password } = req.body;
 
     // Validate input
     if (!email || !username || !password) {
@@ -30,16 +32,20 @@ exports.register = async (req, res, next) => {
     // Generate token
     const token = await authService.generateJWT(user._id, user.username, user.email);
 
+    const responseUser = {
+      id: user._id,
+      username: user.username,
+      email: user.email,
+      avatarUrl: user.avatarUrl || null
+    };
+
     res.status(201).json({
       success: true,
+      token,
+      user: responseUser,
       data: {
         token,
-        user: {
-          id: user._id,
-          username: user.username,
-          email: user.email,
-          avatarUrl: user.avatarUrl || null
-        }
+        user: responseUser
       }
     });
   } catch (error) {
@@ -64,7 +70,14 @@ exports.register = async (req, res, next) => {
  */
 exports.login = async (req, res, next) => {
   try {
-    const { identifier, password } = req.body;
+    const identifier =
+      req.body.identifier ||
+      req.body.loginName ||
+      req.body.email ||
+      req.body.mail ||
+      req.body.username ||
+      req.body.userName;
+    const { password } = req.body;
 
     // Validate input
     if (!identifier || !password) {
@@ -80,16 +93,20 @@ exports.login = async (req, res, next) => {
     // Login user
     const result = await authService.login(identifier, password);
 
+    const responseUser = {
+      id: result.user._id,
+      username: result.user.username,
+      email: result.user.email,
+      avatarUrl: result.user.avatarUrl || null
+    };
+
     res.json({
       success: true,
+      token: result.token,
+      user: responseUser,
       data: {
         token: result.token,
-        user: {
-          id: result.user._id,
-          username: result.user.username,
-          email: result.user.email,
-          avatarUrl: result.user.avatarUrl || null
-        }
+        user: responseUser
       }
     });
   } catch (error) {
@@ -113,7 +130,7 @@ exports.login = async (req, res, next) => {
  */
 exports.loginWithGoogle = async (req, res, next) => {
   try {
-    const { idToken } = req.body;
+    const idToken = req.body.idToken || req.body.token;
 
     if (!idToken) {
       return res.status(400).json({
@@ -145,7 +162,7 @@ exports.loginWithGoogle = async (req, res, next) => {
  */
 exports.requestPasswordReset = async (req, res, next) => {
   try {
-    const { email } = req.body;
+    const email = req.body.email || req.body.mail;
 
     if (!email) {
       return res.status(400).json({
@@ -161,6 +178,7 @@ exports.requestPasswordReset = async (req, res, next) => {
 
     res.json({
       success: true,
+      message: result.message,
       data: {
         message: result.message,
         // In production, don't return OTP to client
@@ -187,7 +205,8 @@ exports.requestPasswordReset = async (req, res, next) => {
  */
 exports.resetPassword = async (req, res, next) => {
   try {
-    const { email, otp, newPassword } = req.body;
+    const email = req.body.email || req.body.mail;
+    const { otp, newPassword } = req.body;
 
     if (!email || !otp || !newPassword) {
       return res.status(400).json({
@@ -203,6 +222,7 @@ exports.resetPassword = async (req, res, next) => {
 
     res.json({
       success: true,
+      message: result.message,
       data: {
         message: result.message
       }

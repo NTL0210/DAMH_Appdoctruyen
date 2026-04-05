@@ -1,6 +1,9 @@
 const mongoose = require('mongoose');
 const logger = require('../utils/logger');
 
+// Fail fast when MongoDB is unavailable instead of buffering queries for 10s.
+mongoose.set('bufferCommands', false);
+
 /**
  * MongoDB connection configuration with retry mechanism
  * Implements exponential backoff for connection failures

@@ -1,6 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const authController = require('../controllers/authController');
+const profileController = require('../controllers/profileController');
+const authMiddleware = require('../middleware/auth');
+const upload = require('../middleware/upload');
+const { authLimiter } = require('../middleware/rateLimiter');
 
 /**
  * @swagger
@@ -35,7 +39,7 @@ const authController = require('../controllers/authController');
  *       400:
  *         $ref: '#/components/responses/ValidationError'
  */
-router.post('/register', authController.register);
+router.post('/register', authLimiter, authController.register);
 
 /**
  * @swagger
@@ -64,7 +68,7 @@ router.post('/register', authController.register);
  *       401:
  *         $ref: '#/components/responses/UnauthorizedError'
  */
-router.post('/login', authController.login);
+router.post('/login', authLimiter, authController.login);
 
 /**
  * @swagger
@@ -89,7 +93,8 @@ router.post('/login', authController.login);
  *       401:
  *         $ref: '#/components/responses/UnauthorizedError'
  */
-router.post('/google', authController.loginWithGoogle);
+router.post('/google', authLimiter, authController.loginWithGoogle);
+router.post('/google-login', authLimiter, authController.loginWithGoogle);
 
 /**
  * @swagger
@@ -115,7 +120,8 @@ router.post('/google', authController.loginWithGoogle);
  *       404:
  *         $ref: '#/components/responses/NotFoundError'
  */
-router.post('/forgot-password', authController.requestPasswordReset);
+router.post('/forgot-password', authLimiter, authController.requestPasswordReset);
+router.post('/request-reset', authLimiter, authController.requestPasswordReset);
 
 /**
  * @swagger
@@ -151,5 +157,10 @@ router.post('/forgot-password', authController.requestPasswordReset);
  *         $ref: '#/components/responses/ValidationError'
  */
 router.post('/reset-password', authController.resetPassword);
+
+// Legacy aliases used by the current Flutter client
+router.get('/profile', authMiddleware, profileController.getProfile);
+router.put('/update-username', authMiddleware, profileController.updateUsername);
+router.post('/upload-avatar', authMiddleware, upload.single('avatar'), profileController.uploadAvatar);
 
 module.exports = router;
