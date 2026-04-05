@@ -11,8 +11,13 @@ const notificationService = require('./src/services/notificationService');
  * Validate required environment variables
  */
 const validateEnv = () => {
+  // Railway provides MONGO_URL, but code uses MONGODB_URI
+  // So we set MONGODB_URI from MONGO_URL if needed
+  if (process.env.MONGO_URL && !process.env.MONGODB_URI) {
+    process.env.MONGODB_URI = process.env.MONGO_URL;
+  }
+
   const required = [
-    
     'MONGODB_URI',
     'JWT_SECRET'
   ];
