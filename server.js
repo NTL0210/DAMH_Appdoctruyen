@@ -52,8 +52,10 @@ const startServer = async () => {
     // Validate environment
     validateEnv();
 
-    // Connect to database. By default the server stays up in degraded mode so
-    // Railway health checks and diagnostics remain reachable while DB issues are fixed.
+
+    const allowStartWithoutDb = process.env.ALLOW_START_WITHOUT_DB === 'true';
+
+
     try {
       await connectDatabase();
     } catch (dbError) {
@@ -61,11 +63,19 @@ const startServer = async () => {
         error: dbError.message
       });
 
+
       if (shouldRequireDatabaseOnStartup()) {
         throw dbError;
       }
 
       logger.warn('Starting server in degraded mode because database is unavailable');
+
+      if (!allowStartWithoutDb) {
+        throw dbError;
+      }
+
+      logger.warn('Starting server in limited mode because ALLOW_START_WITHOUT_DB=true');
+
     }
 
     // Create Express app
