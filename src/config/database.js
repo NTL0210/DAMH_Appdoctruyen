@@ -32,19 +32,12 @@ const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
  * @throws {Error} If connection fails after all retries
  */
 const connectDatabase = async (attempt = 0) => {
-  let mongoUri = process.env.MONGODB_URI;
+  const mongoUri = process.env.MONGODB_URI;
 
   if (!mongoUri) {
     const error = new Error('MONGODB_URI environment variable is not defined');
     logger.error('Database configuration error', { error: error.message });
     throw error;
-  }
-
-  // For Railway MongoDB, ensure authSource parameter is set correctly
-  if (mongoUri.includes('mongo.railway.internal') && !mongoUri.includes('authSource')) {
-    mongoUri = mongoUri.includes('?') 
-      ? `${mongoUri}&authSource=admin`
-      : `${mongoUri}?authSource=admin`;
   }
 
   try {
@@ -53,6 +46,8 @@ const connectDatabase = async (attempt = 0) => {
     await mongoose.connect(mongoUri, {
       serverSelectionTimeoutMS: 5000,
       socketTimeoutMS: 45000,
+      retryWrites: true,
+      w: 'majority',
     });
 
     logger.info('MongoDB connected successfully', {
