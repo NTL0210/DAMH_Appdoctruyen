@@ -37,8 +37,7 @@ const userSchema = new mongoose.Schema({
 });
 
 // Indexes
-userSchema.index({ username: 1 }, { unique: true });
-userSchema.index({ email: 1 }, { unique: true });
-userSchema.index({ googleId: 1 }, { unique: true, sparse: true });
+userSchema.index({ username: 1 });
+userSchema.index({ email: 1 });
 
 module.exports = mongoose.model('User', userSchema);

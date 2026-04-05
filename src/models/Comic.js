@@ -42,8 +42,6 @@ const comicSchema = new mongoose.Schema({
 });
 
 // Indexes
-comicSchema.index({ comicId: 1 }, { unique: true });
-comicSchema.index({ slug: 1 }, { unique: true });
 comicSchema.index({ name: 'text' });
 comicSchema.index({ status: 1 });
 

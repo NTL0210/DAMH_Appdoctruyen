@@ -19,6 +19,5 @@ const genreSchema = new mongoose.Schema({
 });
 
 // Indexes
-genreSchema.index({ genreId: 1 }, { unique: true });
 
 module.exports = mongoose.model('Genre', genreSchema);

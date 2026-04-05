@@ -48,6 +48,9 @@ const connectDatabase = async (attempt = 0) => {
       socketTimeoutMS: 45000,
       retryWrites: true,
       w: 'majority',
+      maxPoolSize: 10,
+      minPoolSize: 2,
+      maxIdleTimeMS: 30000,
     });
 
     logger.info('MongoDB connected successfully', {
