@@ -1,6 +1,9 @@
 const mongoose = require('mongoose');
 const logger = require('../utils/logger');
 
+// Fail fast when MongoDB is unavailable instead of buffering queries for 10s.
+mongoose.set('bufferCommands', false);
+
 /**
  * MongoDB connection configuration with retry mechanism
  * Implements exponential backoff for connection failures
@@ -25,6 +28,31 @@ const getRetryDelay = (attempt) => {
  */
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
+const getMongoUri = () => {
+  const rawUri = process.env.MONGODB_URI || process.env.MONGO_URL || '';
+  return rawUri.trim().replace(/^['"]|['"]$/g, '');
+};
+
+const getSafeMongoSummary = (mongoUri) => {
+  try {
+    const parsed = new URL(mongoUri);
+    return {
+      protocol: parsed.protocol.replace(':', ''),
+      host: parsed.hostname,
+      port: parsed.port || (parsed.protocol === 'mongodb+srv:' ? 'srv' : '27017'),
+      database: parsed.pathname.replace(/^\//, '') || '(default)',
+      authSource: parsed.searchParams.get('authSource') || '(default)',
+      hasUsername: parsed.username.length > 0,
+      source: process.env.MONGODB_URI ? 'MONGODB_URI' : 'MONGO_URL'
+    };
+  } catch (_) {
+    return {
+      source: process.env.MONGODB_URI ? 'MONGODB_URI' : 'MONGO_URL',
+      parseable: false
+    };
+  }
+};
+
 /**
  * Connect to MongoDB with retry mechanism
  * @param {number} attempt - Current attempt number (default: 0)
@@ -32,7 +60,7 @@ const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
  * @throws {Error} If connection fails after all retries
  */
 const connectDatabase = async (attempt = 0) => {
-  const mongoUri = process.env.MONGODB_URI;
+  const mongoUri = getMongoUri();
 
   if (!mongoUri) {
     const error = new Error('MONGODB_URI environment variable is not defined');
@@ -42,6 +70,7 @@ const connectDatabase = async (attempt = 0) => {
 
   try {
     logger.info(`Attempting to connect to MongoDB (attempt ${attempt + 1}/${MAX_RETRIES + 1})`);
+    logger.info('MongoDB connection target', getSafeMongoSummary(mongoUri));
     
     await mongoose.connect(mongoUri, {
       serverSelectionTimeoutMS: 5000,
@@ -68,9 +97,18 @@ const connectDatabase = async (attempt = 0) => {
     });
 
   } catch (error) {
-    logger.error(`MongoDB connection failed (attempt ${attempt + 1}/${MAX_RETRIES + 1})`, {
+    const errorContext = {
       error: error.message,
-      code: error.code
+      code: error.code,
+      ...getSafeMongoSummary(mongoUri)
+    };
+
+    if (error.code === 18) {
+      errorContext.hint = 'MongoDB authentication failed. Check Railway Reference variable for MONGODB_URI, database user/password, and authSource.';
+    }
+
+    logger.error(`MongoDB connection failed (attempt ${attempt + 1}/${MAX_RETRIES + 1})`, {
+      ...errorContext
     });
 
     if (attempt < MAX_RETRIES) {

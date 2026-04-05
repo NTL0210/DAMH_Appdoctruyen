@@ -1,4 +1,5 @@
 const Follow = require('../models/Follow');
+const logger = require('../utils/logger');
 
 class NotificationService {
   constructor() {
@@ -22,7 +23,10 @@ class NotificationService {
    */
   async notifyNewChapter(comicId, chapterData) {
     if (!this.io) {
-      throw new Error('Socket.io not initialized');
+      logger.warn('Notification skipped because Socket.io is not initialized', {
+        comicId
+      });
+      return;
     }
 
     const notification = {
@@ -48,7 +52,15 @@ class NotificationService {
       // First notification for this comic, create queue entry
       this.notificationQueue.set(comicId, {
         notifications: [notification],
-        timeout: setTimeout(() => this.flushNotifications(comicId), this.batchWindowMs)
+        timeout: setTimeout(() => {
+          this.flushNotifications(comicId).catch((error) => {
+            logger.error('Failed to flush batched notifications', {
+              comicId,
+              error: error.message,
+              stack: error.stack
+            });
+          });
+        }, this.batchWindowMs)
       });
     } else {
       // Add to existing queue
@@ -68,27 +80,36 @@ class NotificationService {
     const { notifications } = queue;
     this.notificationQueue.delete(comicId);
 
-    // Get all followers of this comic
-    const followers = await Follow.find({ comicId }).select('accountId');
-    const followerIds = followers.map(f => f.accountId.toString());
+    try {
+      // Get all followers of this comic
+      const followers = await Follow.find({ comicId }).select('accountId');
+      const followerIds = followers.map(f => f.accountId.toString());
 
-    // Send batched notification
-    const batchedNotification = notifications.length === 1 
-      ? notifications[0]
-      : {
-          comicId,
-          comicSlug: notifications[0].comicSlug,
-          comicName: notifications[0].comicName,
-          chapterName: `${notifications.length} new chapters`,
-          message: `${notifications.length} new chapters available`,
-          timestamp: new Date().toISOString(),
-          chapters: notifications.map(n => n.chapterName)
-        };
+      // Send batched notification
+      const batchedNotification = notifications.length === 1 
+        ? notifications[0]
+        : {
+            comicId,
+            comicSlug: notifications[0].comicSlug,
+            comicName: notifications[0].comicName,
+            chapterName: `${notifications.length} new chapters`,
+            message: `${notifications.length} new chapters available`,
+            timestamp: new Date().toISOString(),
+            chapters: notifications.map(n => n.chapterName)
+          };
 
-    // Emit to all connected followers
-    followerIds.forEach(userId => {
-      this.io.to(`user:${userId}`).emit('ReceiveCrawlNotification', batchedNotification);
-    });
+      // Emit to all connected followers
+      followerIds.forEach(userId => {
+        this.io.to(`user:${userId}`).emit('ReceiveCrawlNotification', batchedNotification);
+      });
+    } catch (error) {
+      logger.error('NotificationService: Error flushing notifications', {
+        comicId,
+        queuedNotifications: notifications.length,
+        error: error.message,
+        stack: error.stack
+      });
+    }
   }
 
   /**
@@ -98,7 +119,10 @@ class NotificationService {
    */
   async sendNotificationToUser(userId, notification) {
     if (!this.io) {
-      throw new Error('Socket.io not initialized');
+      logger.warn('Direct notification skipped because Socket.io is not initialized', {
+        userId
+      });
+      return;
     }
 
     this.io.to(`user:${userId}`).emit('notification', notification);

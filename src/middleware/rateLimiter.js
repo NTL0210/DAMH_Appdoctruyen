@@ -29,6 +29,27 @@ const unauthenticatedLimiter = rateLimit({
 });
 
 /**
+ * Dedicated rate limiter for auth endpoints.
+ * Stricter than the generic limiter to reduce credential and OTP spam.
+ */
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    res.status(429).json({
+      success: false,
+      error: {
+        code: 'AUTH_RATE_LIMIT_EXCEEDED',
+        message: 'Too many authentication attempts, please try again later'
+      },
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+/**
  * Rate limiter for authenticated requests
  * 1000 requests per 15 minutes per user
  */
@@ -71,6 +92,7 @@ const smartRateLimiter = (req, res, next) => {
 };
 
 module.exports = {
+  authLimiter,
   unauthenticatedLimiter,
   authenticatedLimiter,
   smartRateLimiter

@@ -24,13 +24,16 @@ exports.getProfile = async (req, res, next) => {
       });
     }
 
+    const responseUser = {
+      username: user.username,
+      email: user.email,
+      avatarUrl: user.avatarUrl || null
+    };
+
     res.json({
       success: true,
-      data: {
-        username: user.username,
-        email: user.email,
-        avatarUrl: user.avatarUrl || null
-      }
+      user: responseUser,
+      data: responseUser
     });
   } catch (error) {
     next(error);
@@ -43,7 +46,7 @@ exports.getProfile = async (req, res, next) => {
  */
 exports.updateUsername = async (req, res, next) => {
   try {
-    const { username } = req.body;
+    const username = req.body.username || req.body.userName;
 
     if (!username || username.trim().length === 0) {
       return res.status(400).json({
@@ -88,13 +91,17 @@ exports.updateUsername = async (req, res, next) => {
       });
     }
 
+    const responseUser = {
+      username: user.username,
+      email: user.email,
+      avatarUrl: user.avatarUrl || null
+    };
+
     res.json({
       success: true,
-      data: {
-        username: user.username,
-        email: user.email,
-        avatarUrl: user.avatarUrl || null
-      }
+      message: 'Username updated successfully',
+      user: responseUser,
+      data: responseUser
     });
   } catch (error) {
     next(error);
@@ -151,13 +158,17 @@ exports.uploadAvatar = async (req, res, next) => {
       }
     }
 
+    const responseUser = {
+      username: user.username,
+      email: user.email,
+      avatarUrl: user.avatarUrl
+    };
+
     res.json({
       success: true,
-      data: {
-        username: user.username,
-        email: user.email,
-        avatarUrl: user.avatarUrl
-      }
+      message: 'Avatar uploaded successfully',
+      user: responseUser,
+      data: responseUser
     });
   } catch (error) {
     // Handle file service errors

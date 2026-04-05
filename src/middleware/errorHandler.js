@@ -1,16 +1,30 @@
 const logger = require('../utils/logger');
 
+const getRequestPath = (req) => {
+  if (req.originalUrl) {
+    return req.originalUrl.split('?')[0];
+  }
+
+  if (req.baseUrl || req.path) {
+    return `${req.baseUrl || ''}${req.path || ''}` || '/';
+  }
+
+  return '/';
+};
+
 /**
  * Global error handler middleware
  * Catches all errors and returns consistent error responses
  */
 const errorHandler = (err, req, res, next) => {
+  const requestPath = getRequestPath(req);
+
   // Log error with full context
   const errorContext = {
     message: err.message,
     stack: err.stack,
     method: req.method,
-    path: req.path,
+    path: requestPath,
     query: req.query,
     body: req.body,
     user: req.user ? { id: req.user.id, username: req.user.username } : null,
@@ -52,9 +66,11 @@ const errorHandler = (err, req, res, next) => {
  * 404 Not Found handler
  */
 const notFoundHandler = (req, res) => {
+  const requestPath = getRequestPath(req);
+
   logger.warn('Route not found', {
     method: req.method,
-    path: req.path,
+    path: requestPath,
     ip: req.ip
   });
 

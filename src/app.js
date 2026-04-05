@@ -4,7 +4,9 @@ const cors = require('cors');
 const compression = require('compression');
 const swaggerUi = require('swagger-ui-express');
 const swaggerSpec = require('./config/swagger');
+const { getConnectionStatus } = require('./config/database');
 const requestLogger = require('./middleware/requestLogger');
+const requireDatabaseConnection = require('./middleware/requireDatabaseConnection');
 const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
 const { smartRateLimiter } = require('./middleware/rateLimiter');
 
@@ -23,6 +25,18 @@ const genreRoutes = require('./routes/genres');
  */
 const createApp = () => {
   const app = express();
+
+  const mountApiRoute = (path, router, options = {}) => {
+    const handlers = options.requiresDatabase
+      ? [requireDatabaseConnection, router]
+      : [router];
+
+    app.use(path, ...handlers);
+    app.use(`/api${path}`, ...handlers);
+  };
+
+  // Trust proxy - required for Railway and other reverse proxies
+  app.set('trust proxy', 1);
 
   // Security middleware
   app.use(helmet({
@@ -54,13 +68,46 @@ const createApp = () => {
   // Rate limiting
   app.use(smartRateLimiter);
 
+  // Ignore automatic browser favicon probes to reduce noisy 404 logs.
+  app.get('/favicon.ico', (req, res) => {
+    res.status(204).end();
+  });
+
   // Health check endpoint
   app.get('/health', (req, res) => {
-    res.json({
-      success: true,
-      status: 'healthy',
+    const dbStatus = getConnectionStatus();
+    const isHealthy = dbStatus === 'connected';
+
+    res.status(isHealthy ? 200 : 503).json({
+      success: isHealthy,
+      status: isHealthy ? 'healthy' : 'degraded',
+      database: {
+        status: dbStatus,
+      },
       timestamp: new Date().toISOString(),
       uptime: process.uptime()
+    });
+  });
+
+  // Root endpoint
+  app.get('/', (req, res) => {
+    res.json({
+      success: true,
+      message: 'Comic Backend API is running',
+      timestamp: new Date().toISOString(),
+      endpoints: {
+        health: '/health',
+        documentation: '/api-docs',
+        legacyApiPrefix: '/api/*',
+        auth: '/auth',
+        profile: '/profile',
+        comics: '/comics',
+        chapters: '/chapters',
+        comments: '/comments',
+        follows: '/follows',
+        'reading-progress': '/reading-progress',
+        genres: '/genres'
+      }
     });
   });
 
@@ -71,14 +118,14 @@ const createApp = () => {
   }));
 
   // Mount API routes
-  app.use('/auth', authRoutes);
-  app.use('/profile', profileRoutes);
-  app.use('/comics', comicRoutes);
-  app.use('/chapters', chapterRoutes);
-  app.use('/comments', commentRoutes);
-  app.use('/follows', followRoutes);
-  app.use('/reading-progress', readingProgressRoutes);
-  app.use('/genres', genreRoutes);
+  mountApiRoute('/auth', authRoutes, { requiresDatabase: true });
+  mountApiRoute('/profile', profileRoutes, { requiresDatabase: true });
+  mountApiRoute('/comics', comicRoutes, { requiresDatabase: true });
+  mountApiRoute('/chapters', chapterRoutes, { requiresDatabase: true });
+  mountApiRoute('/comments', commentRoutes, { requiresDatabase: true });
+  mountApiRoute('/follows', followRoutes, { requiresDatabase: true });
+  mountApiRoute('/reading-progress', readingProgressRoutes, { requiresDatabase: true });
+  mountApiRoute('/genres', genreRoutes, { requiresDatabase: true });
 
   // 404 handler
   app.use(notFoundHandler);
