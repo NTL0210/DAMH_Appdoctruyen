@@ -25,8 +25,8 @@ const genreRoutes = require('./routes/genres');
  */
 const createApp = () => {
   const app = express();
+}
 
-<<<<<<< HEAD
   const mountApiRoute = (path, router, options = {}) => {
     const handlers = options.requiresDatabase
       ? [requireDatabaseConnection, router]
@@ -34,11 +34,11 @@ const createApp = () => {
 
     app.use(path, ...handlers);
     app.use(`/api${path}`, ...handlers);
-=======
+
   const mountApiRoute = (path, router) => {
     app.use(path, router);
     app.use(`/api${path}`, router);
->>>>>>> bfd139cf13d2bfe1da5d264e7ec03d147b05eca7
+
   };
 
   // Trust proxy - required for Railway and other reverse proxies
@@ -124,7 +124,7 @@ const createApp = () => {
   }));
 
   // Mount API routes
-<<<<<<< HEAD
+
   mountApiRoute('/auth', authRoutes, { requiresDatabase: true });
   mountApiRoute('/profile', profileRoutes, { requiresDatabase: true });
   mountApiRoute('/comics', comicRoutes, { requiresDatabase: true });
@@ -133,7 +133,7 @@ const createApp = () => {
   mountApiRoute('/follows', followRoutes, { requiresDatabase: true });
   mountApiRoute('/reading-progress', readingProgressRoutes, { requiresDatabase: true });
   mountApiRoute('/genres', genreRoutes, { requiresDatabase: true });
-=======
+
   mountApiRoute('/auth', authRoutes);
   mountApiRoute('/profile', profileRoutes);
   mountApiRoute('/comics', comicRoutes);
@@ -142,7 +142,7 @@ const createApp = () => {
   mountApiRoute('/follows', followRoutes);
   mountApiRoute('/reading-progress', readingProgressRoutes);
   mountApiRoute('/genres', genreRoutes);
->>>>>>> bfd139cf13d2bfe1da5d264e7ec03d147b05eca7
+
 
   // 404 handler
   app.use(notFoundHandler);
