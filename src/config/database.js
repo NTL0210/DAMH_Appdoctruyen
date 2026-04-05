@@ -33,6 +33,36 @@ const getMongoUri = () => {
   return rawUri.trim().replace(/^['"]|['"]$/g, '');
 };
 
+const normalizeMongoUri = (mongoUri) => {
+  try {
+    const parsed = new URL(mongoUri);
+    const explicitAuthSource = process.env.MONGODB_AUTH_SOURCE?.trim();
+    const explicitDatabase = process.env.MONGODB_DATABASE?.trim();
+    const currentDatabase = parsed.pathname.replace(/^\//, '');
+    const hasUsername = parsed.username.length > 0;
+    const isRailwayHost = /railway\.(internal|app)$/i.test(parsed.hostname);
+
+    if (explicitDatabase) {
+      parsed.pathname = `/${explicitDatabase}`;
+    }
+
+    if (explicitAuthSource) {
+      parsed.searchParams.set('authSource', explicitAuthSource);
+    } else if (hasUsername && isRailwayHost && !parsed.searchParams.get('authSource')) {
+      // Railway Mongo users are typically created in the admin database.
+      parsed.searchParams.set('authSource', 'admin');
+    }
+
+    if (!currentDatabase && explicitDatabase) {
+      parsed.pathname = `/${explicitDatabase}`;
+    }
+
+    return parsed.toString();
+  } catch (_) {
+    return mongoUri;
+  }
+};
+
 const getSafeMongoSummary = (mongoUri) => {
   try {
     const parsed = new URL(mongoUri);
@@ -60,7 +90,7 @@ const getSafeMongoSummary = (mongoUri) => {
  * @throws {Error} If connection fails after all retries
  */
 const connectDatabase = async (attempt = 0) => {
-  const mongoUri = getMongoUri();
+  const mongoUri = normalizeMongoUri(getMongoUri());
 
   if (!mongoUri) {
     const error = new Error('MONGODB_URI environment variable is not defined');
