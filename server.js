@@ -12,6 +12,7 @@ const notificationService = require('./src/services/notificationService');
  */
 const validateEnv = () => {
   const required = [
+    
     'MONGODB_URI',
     'JWT_SECRET'
   ];
