@@ -1,0 +1,65 @@
+========================================
+RAILWAY DEPLOYMENT - THÔNG TIN CẦN THIẾT
+========================================
+
+✅ MONGODB ĐÃ ĐƯỢC TẠO!
+Connection String: mongodb://mongo:qtmOFRezjmcRSbrfFjPzZEGAreqvYoYN@mongodb.railway.internal:27017
+
+📋 ENVIRONMENT VARIABLES CẦN THÊM VÀO BACKEND SERVICE:
+
+PORT=3000
+NODE_ENV=production
+MONGODB_URI=${{MongoDB.MONGO_URL}}
+JWT_SECRET=44a8af24e95b89c677cbfb46aa753b3bdb9e1271195f14997977217e33daf921
+CORS_ORIGIN=*
+LOG_LEVEL=info
+
+⚠️ LƯU Ý:
+- MONGODB_URI: Chọn "Reference" và link đến MongoDB service (không paste text)
+- JWT_SECRET: Đã được generate sẵn ở trên (copy và paste vào Railway)
+- CORS_ORIGIN: Sau khi có domain Flutter app, thay * bằng domain đó
+
+========================================
+CÁC BƯỚC DEPLOY NHANH:
+========================================
+
+1. Truy cập: https://railway.app
+2. Đăng nhập (dùng GitHub)
+3. New Project → Deploy from GitHub repo (hoặc Empty Project)
+4. Thêm MongoDB: New → Database → Add MongoDB
+5. Thêm Backend service (nếu chưa có)
+6. Cấu hình Variables (copy từ trên)
+7. Generate Domain: Settings → Networking → Generate Domain
+8. Test: https://YOUR_DOMAIN.railway.app/health
+
+========================================
+SAU KHI DEPLOY XONG:
+========================================
+
+1. Copy domain Railway (ví dụ: comic-api-production.railway.app)
+
+2. Update Flutter app - Mở file: lib/data/services/comic_service.dart
+   Thay đổi:
+   static const String _baseUrl = 'https://YOUR_DOMAIN.railway.app';
+
+3. Test API:
+   - Health: https://YOUR_DOMAIN.railway.app/health
+   - Comics: https://YOUR_DOMAIN.railway.app/comics?page=1
+   - Docs: https://YOUR_DOMAIN.railway.app/api-docs
+
+========================================
+TÀI LIỆU CHI TIẾT:
+========================================
+
+- DEPLOY_QUICK_START.md: Hướng dẫn nhanh
+- RAILWAY_DEPLOYMENT_GUIDE.md: Hướng dẫn chi tiết đầy đủ
+- pre-deploy-checklist.md: Checklist trước khi deploy
+
+========================================
+HỖ TRỢ:
+========================================
+
+Railway Docs: https://docs.railway.app
+Railway Discord: https://discord.gg/railway
+
+========================================
